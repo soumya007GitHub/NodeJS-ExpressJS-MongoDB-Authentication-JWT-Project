@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler";
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 const registerUser = asyncHandler (async (req, res)=>{
     const {username, email, password} = req.body;
@@ -27,23 +28,33 @@ const registerUser = asyncHandler (async (req, res)=>{
 });
 
 const loginUser = asyncHandler (async (req, res)=>{
-    const {username, password} = req.body;
-    if(!username || !password){
+    const {email, password} = req.body;
+    if(!email || !password){
         res.status(400);
-        res.json("Username or password is missing for login.");
+        throw new Error("email or password is missing for login.");
     }
-    const user = User.findOne({username});
+    const user = User.findOne({email});
     if(user == null){
-        res.status(40);
-        res.json("Account not found, please fill correct credentials or register first");
+        res.status(400);
+        throw new Error("Account not found, please fill correct credentials or register first");
     }
-    const hashedPwd = JSON.parse(user).password;
-    if(bcrypt.compareSync(password, hashedPwd)){
-       res.json("Login succesfully");
+    if(await bcrypt.compare(password, user.password)){
+        const accessToken = jwt.sign({
+            user: {
+                username: user.username,
+                email: user.email,
+                id: user._id
+            }
+        }, process.env.ACCESS_TOKEN_SECRET, {
+            expiresIn: "1m"
+        })
+       res.status(200).json({accessToken});
     }
     else{
-        res.json("Username or password is incorrect");
+        res.status(401);
+        throw new Error("Username or password is incorrect");
     }
+    res.json("Login succesful");
 });
 
 const currentUser = asyncHandler (async (req, res)=>{
