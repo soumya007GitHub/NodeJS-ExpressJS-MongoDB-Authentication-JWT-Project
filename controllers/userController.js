@@ -23,8 +23,14 @@ const registerUser = asyncHandler (async (req, res)=>{
         email,
         password: hashedPwd
     });
-    await newUser.save();
+    const registerUserStatus = await newUser.save();
+    if(registerUserStatus){
     res.status(201).json("Registered succesfully");
+    }
+    else{
+        res.status(400);
+        throw new Error("Failed to register the user.");
+    }
 });
 
 const loginUser = asyncHandler (async (req, res)=>{
@@ -33,7 +39,7 @@ const loginUser = asyncHandler (async (req, res)=>{
         res.status(400);
         throw new Error("email or password is missing for login.");
     }
-    const user = User.findOne({email});
+    const user = await User.findOne({email});
     if(user == null){
         res.status(400);
         throw new Error("Account not found, please fill correct credentials or register first");
@@ -48,13 +54,17 @@ const loginUser = asyncHandler (async (req, res)=>{
         }, process.env.ACCESS_TOKEN_SECRET, {
             expiresIn: "1m"
         })
-       res.status(200).json({accessToken});
+        if(accessToken){
+            res.status(200).json({accessToken});
+        }else{
+            res.status(400);
+            throw new Error("Failed to generate Token");
+        }
     }
     else{
         res.status(401);
         throw new Error("Username or password is incorrect");
     }
-    res.json("Login succesful");
 });
 
 const currentUser = asyncHandler (async (req, res)=>{
