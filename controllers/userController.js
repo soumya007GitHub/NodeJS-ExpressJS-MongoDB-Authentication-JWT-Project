@@ -52,12 +52,12 @@ const loginUser = asyncHandler (async (req, res)=>{
                 id: user._id
             }
         }, process.env.ACCESS_TOKEN_SECRET, {
-            expiresIn: "1m"
+            expiresIn: "1h"
         })
         if(accessToken){
             res.status(200).json({accessToken});
         }else{
-            res.status(400);
+            res.status(401);
             throw new Error("Failed to generate Token");
         }
     }
@@ -68,7 +68,13 @@ const loginUser = asyncHandler (async (req, res)=>{
 });
 
 const currentUser = asyncHandler (async (req, res)=>{
-    res.send("Current user");
+    if(!req.user){
+        res.status(401);
+        throw new Error("Please login first");
+    }
+    res.status(200);
+    res.json({"content": "got user details"});
+    console.log(req.user);
 });
 
 export default {registerUser, loginUser, currentUser};
